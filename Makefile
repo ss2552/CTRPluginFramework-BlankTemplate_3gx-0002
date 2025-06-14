@@ -39,12 +39,8 @@ SOURCES 	:= 	Sources \
 				Sources\ctrulib\util\utf \
 				Sources\ctrulib\util\rbtree
 
-IP			:=  5
-FTP_HOST 	:=	192.168.1.
-FTP_PORT	:=	"5000"
-FTP_PATH	:=	"0004000000033600/" #Zelda OOT
+
 PSF 		:= 	$(notdir $(TOPDIR)).plgInfo
-ACTIONREPLAY := ActionReplay.3gx
 ifneq ("$(wildcard $(ACTIONREPLAY))","")
 FILE_EXISTS = 1
 else
@@ -101,7 +97,7 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L $(dir)/lib)
 
-.PHONY: $(BUILD) clean re all
+.PHONY: $(BUILD) re all
 
 #---------------------------------------------------------------------------------
 all: $(BUILD)
@@ -110,60 +106,19 @@ $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
-#---------------------------------------------------------------------------------
-clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf
-
-re: clean all
-
-send:
-	@echo "Sending the plugin over FTP"
-	@$(TOPDIR)/sendfile.py $(TARGET).plg $(FTP_PATH) "$(FTP_HOST)$(IP)" $(FTP_PORT)
-
-ACNL:
-	make send FTP_PATH="0004000000086400/"
-FL:
-	make send FTP_PATH="0004000000113100/"
-AR:
-	3gxtool.exe -s $(OUTPUT).plg $(CURDIR)/CTRPluginFramework.plgInfo $(CURDIR)/ActionReplay.3gx
-	@$(TOPDIR)/sendfile.py $(ACTIONREPLAY) "ActionReplay/" "$(FTP_HOST)$(IP)" $(FTP_PORT)
-
-install:
-	@mv $(OUTPUT).3gx g:/luma/plugins/default.3gx
-
-#---------------------------------------------------------------------------------
+re: all
 
 else
-
-#---------------------------------------------------------------------------------
-# main targets
-#---------------------------------------------------------------------------------
 
 DEPENDS	:=	$(OFILES:.o=.d)
 EXCLUDE := main.o cheats.o ActionReplayTest.o OSDManager.o PointerTesting.o Speedometer.o
 
-
-$(OUTPUT).3gx : $(OFILES) $(LIBOUT)
 $(LIBOUT):	$(filter-out $(EXCLUDE), $(OFILES))
 
-#---------------------------------------------------------------------------------
-# you need a rule like this for each extension you use as binary data
-#---------------------------------------------------------------------------------
 %.bin.o	:	%.bin
-#---------------------------------------------------------------------------------
 	@echo $(notdir $<)
 	@$(bin2o)
 
-#---------------------------------------------------------------------------------
-%.3gx: %.elf
-	@echo creating $(notdir $@)
-	@$(OBJCOPY) -O binary $(OUTPUT).elf $(TOPDIR)/objdump -S
-	@3gxtool.exe -s $(TOPDIR)/objdump $(TOPDIR)/$(PSF) $@
-	@- rm $(TOPDIR)/objdump
-
 -include $(DEPENDS)
 
-#---------------------------------------------------------------------------------------
 endif
-#---------------------------------------------------------------------------------------
