@@ -92,7 +92,7 @@ $(OUTPUT).3gx : $(OFILES)
 #---------------------------------------------------------------------------------
 .PRECIOUS: %.elf
 %.3gx: %.elf
-	@echo creating $(notdir $@)
+	@a
 	@chmod 777 $(TOPDIR)/3gxtool
 	@$(CURDIR)/3gxtool -s $(word 1, $^) $(TOPDIR)/$(PLGINFO) $@
 
