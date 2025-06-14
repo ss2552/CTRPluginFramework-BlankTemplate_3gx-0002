@@ -15,9 +15,10 @@ Description: |
   This plugin gives you access to a set of tools to edit your games
 
   Features:
-    - Memory searcher
     - Hex Editor
-    - Code creator
-    - Code import from file
-    - Action Replay engine with extra capabilities
-    - Super fast screenshot engine
+
+Compatibility: Any
+
+MemorySize: 5MiB
+
+UsePrivateMemory: false
