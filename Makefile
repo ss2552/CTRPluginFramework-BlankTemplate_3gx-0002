@@ -1,72 +1,37 @@
-#---------------------------------------------------------------------------------
 .SUFFIXES:
-#---------------------------------------------------------------------------------
 
 ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
 endif
 
-TOPDIR ?= $(CURDIR)
+TOPDIR 		?= 	$(CURDIR)
 include $(DEVKITARM)/3ds_rules
 
 TARGET		:= 	$(notdir $(CURDIR))
+PLGINFO 	:= 	CTRPluginFramework.plgInfo
+
 BUILD		:= 	Build
-INCLUDES	:= 	Includes \
-				Includes\ctrulib \
-				Includes\ctrulib\allocator \
-				Includes\ctrulib\gpu \
-				Includes\ctrulib\services \
-				Includes\ctrulib\util
-SOURCES 	:= 	Sources \
-				Sources\CTRPluginFramework \
-				Sources\CTRPluginFramework\Graphics \
-				Sources\CTRPluginFramework\Menu \
-				Sources\CTRPluginFramework\System \
-				Sources\CTRPluginFramework\Utils \
-				Sources\CTRPluginFrameworkImpl \
-				Sources\CTRPluginFrameworkImpl\ActionReplay \
-				Sources\CTRPluginFrameworkImpl\Disassembler \
-				Sources\CTRPluginFrameworkImpl\Graphics \
-				Sources\CTRPluginFrameworkImpl\Graphics\Icons \
-				Sources\CTRPluginFrameworkImpl\Menu \
-				Sources\CTRPluginFrameworkImpl\Search \
-				Sources\CTRPluginFrameworkImpl\System \
-				Sources\ctrulib \
-				Sources\ctrulib\allocator \
-				Sources\ctrulib\gpu \
-				Sources\ctrulib\services \
-				Sources\ctrulib\system \
-				Sources\ctrulib\util\utf \
-				Sources\ctrulib\util\rbtree
-
-
-PSF 		:= 	$(notdir $(TOPDIR)).plgInfo
-ifneq ("$(wildcard $(ACTIONREPLAY))","")
-FILE_EXISTS = 1
-else
-FILE_EXISTS = 0
-endif
+INCLUDES	:= 	Includes
+LIBDIRS		:= 	$(TOPDIR)
+SOURCES 	:= 	Sources
 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-march=armv6k -mlittle-endian -mtune=mpcore -mfloat-abi=hard
+ARCH		:=	-march=armv6k -mlittle-endian -mtune=mpcore -mfloat-abi=hard 
 
-CFLAGS	:=	-g -Os -mword-relocations \
- 			-fomit-frame-pointer -ffunction-sections -fno-strict-aliasing \
-			$(ARCH)
+CFLAGS		:=	-Os -mword-relocations \
+				-fomit-frame-pointer -ffunction-sections -fno-strict-aliasing \
+				$(ARCH)
 
-CFLAGS		+=	$(INCLUDE) -DARM11 -D_3DS
-#-Wall -Wextra -Wdouble-promotion -Werror
+CFLAGS		+=	$(INCLUDE) -DARM11 -D_3DS 
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
-ASFLAGS		:= -g $(ARCH)
-LDFLAGS		:= -T $(TOPDIR)/3ds.ld $(ARCH) -Os -Wl,-Map,$(notdir $*.map),--gc-sections,--strip-discarded,--strip-debug
-#LDFLAGS := -pie -specs=3dsx.specs -g $(ARCH) -mtp=soft -Wl,--section-start,.text=0x14000000 -Wl,--gc-sections
+ASFLAGS		:=	$(ARCH)
+LDFLAGS		:= -T $(TOPDIR)/3ds.ld $(ARCH) -Os -Wl,-Map,$(notdir $*.map),--gc-sections 
 
-LIBS 		:= 	-lctru -lm
-LIBDIRS		:= 	$(CTRULIB)
+LIBS		:= -lCTRPluginFramework
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -76,9 +41,7 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
-export LIBOUT	:=  $(CURDIR)/lib$(TARGET).a
 export TOPDIR	:=	$(CURDIR)
-
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
 
@@ -87,17 +50,17 @@ export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 CFILES			:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES			:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+#	BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
 export LD 		:= 	$(CXX)
 export OFILES	:=	$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I $(CURDIR)/$(dir) ) \
+					$(foreach dir,$(LIBDIRS),-I $(dir)/include) \
+					-I $(CURDIR)/$(BUILD)
 
-export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-					$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-					-I$(CURDIR)/$(BUILD)
+export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L $(dir)/Lib)
 
-export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L $(dir)/lib)
-
-.PHONY: $(BUILD) re all
+.PHONY: $(BUILD) all
 
 #---------------------------------------------------------------------------------
 all: $(BUILD)
@@ -108,17 +71,32 @@ $(BUILD):
 
 re: all
 
+#---------------------------------------------------------------------------------
+
 else
 
 DEPENDS	:=	$(OFILES:.o=.d)
-EXCLUDE := main.o cheats.o ActionReplayTest.o OSDManager.o PointerTesting.o Speedometer.o
 
-$(LIBOUT):	$(filter-out $(EXCLUDE), $(OFILES))
-
+#---------------------------------------------------------------------------------
+# main targets
+#---------------------------------------------------------------------------------
+$(OUTPUT).3gx : $(OFILES)
+#---------------------------------------------------------------------------------
+# you need a rule like this for each extension you use as binary data
+#---------------------------------------------------------------------------------
 %.bin.o	:	%.bin
+#---------------------------------------------------------------------------------
 	@echo $(notdir $<)
 	@$(bin2o)
 
+#---------------------------------------------------------------------------------
+.PRECIOUS: %.elf
+%.3gx: %.elf
+	@echo creating $(notdir $@)
+	@chmod 777 $(TOPDIR)/3gxtool
+	@$(CURDIR)/3gxtool -s $(word 1, $^) $(TOPDIR)/$(PLGINFO) $@
+
 -include $(DEPENDS)
 
+#---------------------------------------------------------------------------------------
 endif
