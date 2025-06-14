@@ -39,7 +39,7 @@ SOURCES 	:= 	Sources \
 				Sources\ctrulib\util\utf \
 				Sources\ctrulib\util\rbtree
 
-PSF 		:= 	$(notdir $(TOPDIR)).plgInfo
+PSF 		:= 	CTRPluginFramework.plgInfo
 ACTIONREPLAY := ActionReplay.3gx
 ifneq ("$(wildcard $(ACTIONREPLAY))","")
 FILE_EXISTS = 1
@@ -108,6 +108,7 @@ $(BUILD):
 
 re: all
 
+#---------------------------------------------------------------------------------
 
 else
 
@@ -134,8 +135,7 @@ $(LIBOUT):	$(filter-out $(EXCLUDE), $(OFILES))
 %.3gx: %.elf
 	@echo creating $(notdir $@)
 	@$(OBJCOPY) -O binary $(OUTPUT).elf $(TOPDIR)/objdump -S
-	@chmod 777 $(TOPDIR)/3gxtool
-	@3gxtool.exe -s $(word 1, $^) $(TOPDIR)/$(PSF) $@
+	@$(TOPDIR)/3gxtool.exe -s $(TOPDIR)/objdump $(TOPDIR)/$(PSF) $@
 
 -include $(DEPENDS)
 
